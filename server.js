@@ -1,69 +1,72 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const { sequelize, Book } = require('./models');
+const morgan = require('morgan');
+const { Sequelize } = require('sequelize');
+const { Author, Category, Book } = require('./models');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
-app.use(bodyParser.json());
+app.use(morgan('tiny'));
+app.use(express.json());
 
-// Middleware
-app.use((req, res, next) => {
-    console.log(`${req.method} request for ${req.url}`);
-    next();
+// Example route
+app.get('/', (req, res) => {
+  res.send('Welcome to the Book Management System API!');
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send({ error: 'Something went wrong!' });
-});
-
-// Routes
-app.post('/api/books', async (req, res) => {
-    try {
-        const book = await Book.create(req.body);
-        res.status(201).json(book);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to add the book.' });
-    }
-});
-
+// Routes for Books
 app.get('/api/books', async (req, res) => {
-    try {
-        const books = await Book.findAll();
-        res.json(books);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch books.' });
-    }
+  try {
+    const books = await Book.findAll({ include: [Author, Category] });
+    res.json(books);
+  } catch (err) {
+    res.status(500).send('Error fetching books');
+  }
 });
 
-app.put('/api/books/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updatedData = req.body;
-        const [updatedRows] = await Book.update(updatedData, { where: { id } });
-        if (updatedRows) res.json({ message: 'Book updated successfully.' });
-        else res.status(404).json({ error: 'Book not found.' });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to update the book.' });
-    }
+app.post('/api/books', async (req, res) => {
+  try {
+    const { title, author_id, category_id, publishedYear, isbn } = req.body;
+    const newBook = await Book.create({ title, author_id, category_id, publishedYear, isbn });
+    res.status(201).json(newBook);
+  } catch (err) {
+    res.status(500).send('Error adding book');
+  }
 });
 
 app.delete('/api/books/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deletedRows = await Book.destroy({ where: { id } });
-        if (deletedRows) res.json({ message: 'Book deleted successfully.' });
-        else res.status(404).json({ error: 'Book not found.' });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to delete the book.' });
+  const { id } = req.params;
+  try {
+    const book = await Book.findByPk(id);
+    if (!book) {
+      return res.status(404).send('Book not found');
     }
+    await book.destroy();
+    res.status(200).send('Book deleted successfully');
+  } catch (err) {
+    res.status(500).send('Error deleting book');
+  }
 });
 
-// Start the server
-sequelize.sync({ force: false }).then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server is running on http://localhost:${PORT}`);
-    });
+// Sync sequelize models
+const sequelize = new Sequelize({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  username: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  dialect: 'mysql'
 });
+
+sequelize.authenticate().then(() => {
+  console.log('Database connected');
+}).catch(err => {
+  console.error('Unable to connect to the database:', err);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+const cors = require('cors');
+app.use(cors());  // Allow requests from all origins

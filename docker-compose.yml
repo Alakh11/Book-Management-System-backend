@@ -1,0 +1,15 @@
+version: '3'
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: book_management_system
+    ports:
+      - "3306:3306"
+    networks:
+      - booknet
+
+networks:
+  booknet:
+    driver: bridge
