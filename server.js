@@ -2,10 +2,12 @@ const express = require('express');
 const morgan = require('morgan');
 const { Sequelize } = require('sequelize');
 const { Author, Category, Book } = require('./models');
+const models = require('./models');
+
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.use(morgan('tiny'));
 app.use(express.json());
@@ -50,14 +52,11 @@ app.delete('/api/books/:id', async (req, res) => {
 });
 
 // Sync sequelize models
-const sequelize = new Sequelize({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  dialect: 'mysql'
-});
+const sequelize = new Sequelize('book_management_system', 'book_management_system', '12345678', {
+    host: '127.0.0.1', 
+    dialect: 'mysql',
+    port: 3306
+  });
 
 sequelize.authenticate().then(() => {
   console.log('Database connected');
@@ -65,8 +64,8 @@ sequelize.authenticate().then(() => {
   console.error('Unable to connect to the database:', err);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(5001, () => {
+  console.log(`Server is running on port ${5001}`);
 });
 const cors = require('cors');
 app.use(cors());  // Allow requests from all origins

@@ -1,11 +1,16 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+'use strict';
 
-const Category = sequelize.define('Category', {
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false
-  }
-});
+module.exports = (sequelize, DataTypes) => {
+  const Category = sequelize.define('Category', {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+  });
 
-module.exports = Category;
+  Category.associate = (models) => {
+    Category.hasMany(models.Book, { foreignKey: 'category_id', as: 'books' });
+  };
+
+  return Category;
+};

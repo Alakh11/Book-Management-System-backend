@@ -1,24 +1,25 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const Author = require('./author');
-const Category = require('./category');
+'use strict';
 
-const Book = sequelize.define('Book', {
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  publishedYear: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  isbn: {
-    type: DataTypes.STRING,
-    allowNull: true
-  }
-});
+module.exports = (sequelize, DataTypes) => {
+  const Book = sequelize.define('Book', {
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    publishedYear: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    isbn: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+  });
 
-Book.belongsTo(Author, { foreignKey: 'author_id' });
-Book.belongsTo(Category, { foreignKey: 'category_id' });
+  Book.associate = (models) => {
+    Book.belongsTo(models.Author, { foreignKey: 'author_id', as: 'author' });
+    Book.belongsTo(models.Category, { foreignKey: 'category_id', as: 'category' });
+  };
 
-module.exports = Book;
+  return Book;
+};
