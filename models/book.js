@@ -6,6 +6,8 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    author_id: DataTypes.INTEGER,
+    category_id: DataTypes.INTEGER,
     publishedYear: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -17,8 +19,15 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Book.associate = (models) => {
-    Book.belongsTo(models.Author, { foreignKey: 'author_id', as: 'author' });
-    Book.belongsTo(models.Category, { foreignKey: 'category_id', as: 'category' });
+    // Define alias for the author association
+    Book.belongsTo(models.Author, {
+      foreignKey: 'author_id',
+      as: 'author' // Use alias 'author'
+    });
+    Book.belongsTo(models.Category, {
+      foreignKey: 'category_id',
+      as: 'category' // Use alias 'category'
+    });
   };
 
   return Book;
