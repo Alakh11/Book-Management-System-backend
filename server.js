@@ -4,6 +4,8 @@ const { Sequelize } = require('sequelize');
 const { Author, Category, Book } = require('./models');
 require('dotenv').config();
 const cors = require('cors');
+const Joi = require('joi');
+
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -42,11 +44,25 @@ app.get('/api/books', async (req, res) => {
   try {
     const books = await Book.findAll({ 
         include: [
-            { model: Author, as: 'author' }, // Use alias 'author'
-            { model: Category, as: 'category' } // Use alias 'category'
-          ]
+        { model: Author, as: 'authorDetails', attributes: ['name'] },
+        { model: Category, as: 'categoryDetails', attributes: ['name'] },
+      ],
+      attributes: ['id', 'title', 'isbn', 'publishedYear'], // Return necessary fields
         });
-    res.json(books);
+        
+
+        // Transform response to include author and genre names
+    const response = books.map((book) => ({
+        id: book.id,
+        title: book.title,
+        isbn: book.isbn,
+        publishedYear: book.publishedYear,
+        author: book.authorDetails.name, // Map author name
+        genre: book.categoryDetails.name, // Map category name
+      }));
+  
+      res.json(response);
+      res.json(books);
   } catch (err) {
     console.error('Error fetching books:', err.message || err);
     res.status(500).send(`Error fetching books: ${err.message || err}`);
@@ -76,12 +92,67 @@ app.get('/api/books/search', async (req, res) => {
   
 
 app.post('/api/books', async (req, res) => {
+     console.log('Received data:', req.body);
+     const { title, author, genre, publishedYear, isbn } = req.body;
   try {
-    const { title, author_id, category_id, publishedYear, isbn } = req.body;
-    const newBook = await Book.create({ title, author_id, category_id, publishedYear, isbn });
-    res.status(201).json(newBook);
+    
+    // Validation
+    if (!title || !author || !genre || !isbn) {
+        return res.status(400).send('All fields (title, author, genre, isbn) are required.');
+      }
+      if (isNaN(publishedYear)) {
+        return res.status(400).json({ message: 'Published Year must be numeric' });
+      }
+
+        // Find or create the author
+          let [authorRecord] = await Author.findOrCreate({
+            where: { name: author },
+            defaults: { name: author },
+          });
+          if (!authorRecord) {
+            authorRecord = await Author.create({ name: author });
+          }
+      
+          // Find or create the category/genre
+          let [categoryRecord] = await Category.findOrCreate({
+            where: { name: genre },
+            defaults: { name: genre },
+          });
+          if (!categoryRecord) {
+            categoryRecord = await Category.create({ name: genre });
+          }
+
+          // Check if the book already exists
+          const existingBook = await Book.findOne({
+           where: { title, isbn }
+          });
+
+          // Example validation schema using Joi or similar
+const bookSchema = Joi.object({
+    title: Joi.string().required(),
+    author: Joi.string().required(),
+    genre: Joi.string().required(),
+    publishedYear: Joi.date().required(),
+    isbn: Joi.string().min(1).max(11).required(),
+  });
+  if (existingBook) {
+    return res.status(409).send('Book with this title and ISBN already exists.');
+  }
+    // Create the new book
+    const newBook = await Book.create({ 
+        title, author_id: authorRecord.id, // Use the resolved ID
+        category_id: categoryRecord.id, // Use the resolved ID
+        publishedYear, isbn
+        });
+    res.status(201).json({
+        message: 'Book added successfully',
+        book: newBook,
+        author: authorRecord,
+        category: categoryRecord,
+      });
   } catch (err) {
-    res.status(500).send('Error adding book');
+    console.error('Error adding book:', err.message || err);
+    res.status(500).send(`Error adding book: ${err.message || err}`);
   }
 });
 

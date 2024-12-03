@@ -1,25 +1,55 @@
 const express = require('express');
-const { Book, Author, Category } = require('./models');
-const Sequelize = require('sequelize');
-
 const router = express.Router();
+const { Book, Author, Category } = require('./models');
 
-// Search books by title or author
-router.get('/books/search', async (req, res) => {
-  const query = req.query.query;
+router.get('/books', async (req, res) => {
   try {
     const books = await Book.findAll({
-      where: {
-        [Sequelize.Op.or]: [
-          { title: { [Sequelize.Op.like]: `%${query}%` } },
-          { author: { [Sequelize.Op.like]: `%${query}%` } }
-        ]
-      }
+      include: [
+        { model: Author, as: 'author' },
+        { model: Category, as: 'category' },
+      ],
     });
     res.json(books);
   } catch (err) {
-    res.status(500).send('Server error');
+    console.error(err);
+    res.status(500).send('Server Error');
   }
 });
-
+router.post('/books', async (req, res) => {
+    try {
+      const { title, author, genre, publishedYear, isbn } = req.body;
+  
+      // Validate required fields
+      if (!title || !author || !genre) {
+        return res.status(400).json({ error: 'Title, author, and genre are required.' });
+      }
+  
+      // Find or create the author
+      const [authorRecord] = await Author.findOrCreate({
+        where: { name: author },
+        defaults: { name: author },
+      });
+  
+      // Find or create the category/genre
+      const [categoryRecord] = await Category.findOrCreate({
+        where: { name: genre },
+        defaults: { name: genre },
+      });
+  
+      // Create the book
+      const newBook = await Book.create({
+        title,
+        author_id: authorRecord.id,
+        category_id: categoryRecord.id,
+        publishedYear,
+        isbn,
+      });
+  
+      res.status(201).json(newBook);
+    } catch (error) {
+      console.error('Error saving book:', error);
+      res.status(500).json({ error: 'Failed to save book.' });
+    }
+  });
 module.exports = router;

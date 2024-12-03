@@ -1,27 +1,19 @@
-'use strict';
-
 module.exports = (sequelize, DataTypes) => {
-  const Author = sequelize.define(
-    'Author',
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
+    const Author = sequelize.define('Author', {
       name: {
-        type: DataTypes.STRING, // Use DataTypes.STRING instead of sequelize.STRING
+        type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
       },
-    },
-    {
-      timestamps: false, // Disable createdAt and updatedAt
-    }
-  );
-
-  Author.associate = (models) => {
-    Author.hasMany(models.Book, { foreignKey: 'author_id', as: 'books' });
+    });
+  
+    Author.associate = (models) => {
+      Author.hasMany(models.Book, {
+        foreignKey: 'author_id',
+        as: 'books', // Alias for reverse association
+      });
+    };
+  
+    return Author;
   };
-
-  return Author;
-};
+  
